@@ -1,0 +1,110 @@
+---
+title: "Regression Models Course Project"
+author: "Hans Ehrencrona"
+date: "11 March 2016"
+output: pdf_document
+---
+
+#### Executive summary
+This document represents the project in the Coursera/Johns Hopkins Regression Models course. The overall objective was to analyze the `mtcars` data in the R `datasets` package using regression models and exploratory analyses. Specifically, the following two questions were asked: "Is an automatic or manual transmission better for MPG?", and "Quantify the MPG difference between automatic and manual transmissions."
+
+Manual transmission was associated with a 7.2 miles/gallon improvement compared to automatic (P = 0.001). However, in multivariable regression analysis holding weight, horse power and number of cylinders constant, manual transmission showed a non-significant positive association with MPG (1.8 MPG improvement, P = 0.21). In this model, weight and horse power seem to be the most important predictors.
+
+#### Exploratory analysis and statistical inference
+Due to space constraints, I can not show all code in this report. Several external packages were loaded for this analysis. Details on the dataset can be found through `?mtcars`. I transformed `mtcars` into `carsFactor`, changing the following variables from numeric to factor: `cyl, vs, am, gear, carb`.
+
+```{r message = FALSE, echo=FALSE}
+library(datasets); library(ggplot2); library (GGally)
+library(lm.beta); library(car); library(knitr)
+data(mtcars)
+# head(mtcars)
+carsFactor <- mtcars
+carsFactor$cyl <- factor(carsFactor$cyl)
+carsFactor$vs <- factor(carsFactor$vs)
+carsFactor$am <- factor(carsFactor$am, labels = c("Automatic", "Manual"))
+carsFactor$gear <- factor(carsFactor$gear)
+carsFactor$carb <- factor(carsFactor$carb)
+# str(carsFactor)
+```
+I constructed a boxplot of MPG by transmission type (Appendix, Fig 1) that shows clearly increased MPG for cars with manual transmission. This relationship can be evaluated by `t.test(mpg ~ am, data = carsFactor)`), which demonstrates a highly significant difference in the means, P = 0.0014. Next, I examined the correlation between MPG and the other variables in `mtcars`:
+```{r}
+sort(cor(mtcars)[1,])
+```
+
+Several variables show a high correlation with MPG, as can also be visualised in a pairwise plot for `MPG`, variables with cor>0.7 (`cyl, disp, hp, wt`) and colour coded for `am` (Appendix, Fig 2a). This is further emphasized in Fig 2b, a scatter plot of MPG vs weight by transmission. From this exploratory analysis, it seems clear that it is oversimplistic to only study the relation between `mpg` and `am`.
+
+#### Linear regression and model selection
+
+```{r echo = FALSE}
+fitBase <- lm(mpg ~ am, data = carsFactor)
+kable(data.frame(summary(fitBase)$coef), caption = "fitBase <- lm(mpg ~ am, data = carsFactor)", col.names = c("Estimate", "Std Err", "t value", "Pr(>|t|)"))
+```
+
+This simple linear regression model shows a high correlation between transmission and MPG. The coefficent $\beta0$ represents the mean MPG for automatic transmission (`am` = 0), and $\beta1$ is the mean difference between automatic and manual. However, the adjusted$\ R^2$ is only 0.33, meaning that a large fraction of the variance remains unexplained by this model. Compare this to the full model (results suppressed due to space constraints):
+```{r}
+fitAll <- lm(mpg ~ ., data = carsFactor)
+```
+
+```{r echo = FALSE, eval = FALSE}
+kable(data.frame(summary(fitAll)$coef),
+      col.names = c("Estimate", "Std Err", "t value", "Pr(>|t|)"))
+```
+
+In the full model, the adjusted$\ R^2$ is 0.78, so a larger fraction of the variance is explained. However, no variables are significant, and inclusion of too many varibles can lead to over-fitting. Going back to the correlation above, the variables with cor>0.7 (`cyl, disp, hp, wt`) all make sense to include in a model, since the weight and engine efficency should have an impact on MPG. Different models were compared:
+```{r}
+fitAddWt <- update(fitBase, .~. + wt)
+fitAddWtCyl <- update(fitAddWt, .~. + cyl)
+fitAddWtCylDisp <- update(fitAddWtCyl, .~. + disp)
+fitAddWtCylDispHp <- update(fitAddWtCylDisp, .~. + hp)
+anova(fitBase, fitAddWt, fitAddWtCyl, fitAddWtCylDisp, fitAddWtCylDispHp)
+```
+So, by the ANOVA we can see statistically significant differences from the base model until we add `disp`, but `hp` again seems to contribute. This leads us to the final model:
+```{r}
+fitFinal <- update(fitAddWtCylDisp, .~. -disp + hp)
+anova(fitBase, fitFinal)
+anova(fitFinal, fitAll)
+```
+The ANOVA results demonstrate both a significant difference from the base model, and at the same time no significant difference from the full model. Let's take a look at the final model summary together with 95% CI estimates:
+
+```{r echo = FALSE}
+kable(data.frame(summary(fitFinal)$coef, confint(fitFinal)), caption = "fitFinal <- lm(mpg ~ am + wt + cyl + hp, data = carsFactor)", col.names = c("Estimate", "Std Err", "t value", "Pr(>|t|)", "95% CI (lower)", "95% CI (upper)"))
+```
+
+In the final model, it is clear from the $\beta1$ coefficient that manual transmission is associated with a 1.8 MPG increase, holding weight, horse power and number of cylinders constant. This result does not reach statistical significance at the $\alpha$ = 0.05 level, however, as demonstrated both by the estimated p-value and the 95% CI. In this model, the other predictors seem to be more important. Finally, the adjusted$\ R^2$ of the final model is 0.84 (with multiple$\ R^2$ = 0.87), demonstrating a clear improvement in the fraction of the variance explained as compared to the base model.
+
+#### Diagnostics and conclusion
+From Table 2 above, we can 
+
+$\pagebreak$
+
+## APPENDIX
+
+#### Fig 1. Boxplot of MPG by transmission type
+```{r echo = FALSE, fig.width=5, fig.height=3, fig.align='center'}
+ggplot(carsFactor, aes(x = am, y = mpg, fill = am)) +
+        geom_boxplot() + geom_jitter(width = 0.1) +
+        labs(x = "Transmission", y = "Miles/(US) gallon [mpg]", fill = "Transmission")
+```
+
+#### Fig 2a. Pairwise plot of selected variables from the `mtcars` dataset, colour coded by transmission
+```{r echo = FALSE, message=FALSE, fig.align='center'}
+# p <- ggpairs(carsFactor, lower = list(continuous = "smooth"),
+#        mapping = aes(colour = am), columns = c(1, 2, 3, 4, 6, 9))
+# p + ggplot2::theme(axis.title = element_text(size = 8, angle = 45), axis.text = element_text(size = 6))
+```
+
+#### Fig 2b. Scatter plot of MPG vs weight by transmission
+```{r echo = FALSE, fig.width=5, fig.height=3, fig.align='center'}
+ggplot(carsFactor, aes(x = wt, y = mpg, group = am)) +
+        geom_point(size = 3.5, colour = "black") +
+        geom_point(aes(colour = am), size = 3) +
+        scale_colour_discrete(labels=c("Automatic", "Manual")) +
+        labs(x = "Weight [1000 lbs]", y = "Miles/(US) gallon [mpg]", colour = "Transmission")
+```
+
+#### Diagnostic plot (FUNDERA PÅ NAMN)
+```{r echo = FALSE, fig.align='center'}
+par(mfrow = c(2, 2))
+# plot(fitStep)
+par(mfrow = c(1, 1))
+```
