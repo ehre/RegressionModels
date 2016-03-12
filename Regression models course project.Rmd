@@ -8,7 +8,7 @@ output: pdf_document
 #### Executive summary
 This document represents the final project in the Coursera/Johns Hopkins Regression Models course. The overall objective was to analyze the `mtcars` data in the R `datasets` package using regression models and exploratory analyses. Specifically, the following two questions were asked: "Is an automatic or manual transmission better for MPG?", and "Quantify the MPG difference between automatic and manual transmissions."
 
-Manual transmission was associated with a 7.2 miles/gallon improvement compared to automatic (P = 0.001). However, in multivariable regression analysis holding weight, horse power and number of cylinders constant, manual transmission showed a non-significant positive association with MPG (1.8 MPG improvement, P = 0.21). In this model, weight and horse power seem to be the most important predictors.
+Manual transmission was associated with a 7.2 miles/gallon improvement compared to automatic (P = 0.001). However, in multivariable regression analysis holding weight, horse power and number of cylinders constant, manual transmission showed a non-significant positive association with MPG (1.8 (+/- 2.9) MPG improvement, P = 0.21). In this model, weight and horse power seem to be the most important predictors.
 
 #### Exploratory analysis and statistical inference
 Due to space constraints, I can not show all code in this report. For those interested I refer to [the Rmd file at my GitHub repository](https://github.com/ehre/RegressionModels). Several external packages were loaded for this analysis. Details on the dataset can be found through `?mtcars`. I transformed `mtcars` into `carsFactor`, changing the following variables from numeric to factor: `cyl, vs, am, gear, carb`.
@@ -78,7 +78,7 @@ These ANOVA results (results suppressed) demonstrate both a significant differen
 kable(data.frame(summary(fitFinal)$coef, confint(fitFinal)), caption = "fitFinal <- lm(mpg ~ am + wt + cyl + hp, data = carsFactor)", col.names = c("Estimate", "Std Err", "t value", "Pr(>|t|)", "95% CI (lower)", "95% CI (upper)"))
 ```
 
-In the final model, it is clear from the $\beta1$ coefficient that manual transmission is associated with a 1.8 MPG increase, holding weight, horse power and number of cylinders constant. This result does not reach statistical significance at the $\alpha$ = 0.05 level, however, as demonstrated both by the estimated p-value and the 95% CI. In this model, the other predictors seem to be more important. Finally, the adjusted$\ R^2$ of the final model is 0.84 (with multiple$\ R^2$ = 0.87). This represents a clear improvement in the fraction of the variance explained as compared to the base model, and also an improvement of the adjusted$\ R^2$ compared to the full model.
+In the final model, it is clear from the $\beta1$ coefficient and the 95% CI that manual transmission is associated with a 1.8 (+/- 2.9) MPG increase, holding weight, horse power and number of cylinders constant. This result does not reach statistical significance at the $\alpha$ = 0.05 level, as demonstrated both by the estimated p-value and the 95% CI. In this model, the other predictors seem to be more important. Finally, the adjusted$\ R^2$ of the final model is 0.84 (with multiple$\ R^2$ = 0.87). This represents a clear improvement in the fraction of the variance explained as compared to the base model, and also an improvement of the adjusted$\ R^2$ compared to the full model.
 
 $\pagebreak$
 
